@@ -17,21 +17,7 @@ class MainActivity : BaseActivity() {
         }
 
         safeActions = SafeActivityActionsFacade()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        safeActions.resume()
-    }
-
-    override fun onPause() {
-        super.onPause()
-        safeActions.pause()
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        safeActions.quit()
+        lifecycle.addObserver(safeActions)
     }
 
     private fun startALongRunningAsyncOperationAtTheEndShowFragment() {
