@@ -1,15 +1,19 @@
 package com.rosiapps.illegalstateexceptiondemo
 
 import android.os.Bundle
+import android.os.HandlerThread
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import kotlinx.android.synthetic.main.activity_main.*
 import java.util.concurrent.Executors
+import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
     private val executor = Executors.newSingleThreadScheduledExecutor()
+    private var isStopped = true
+    private val queue = LinkedBlockingQueue<Runnable>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "onCreate")
@@ -28,8 +32,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStart() {
+        isStopped = false
         Log.d(TAG, "onStart")
         super.onStart()
+
+        if(queue.size > 0){
+            Log.d(TAG, "onStart, queue size: ${queue.size}")
+            while (queue.size > 0){
+                queue.poll()?.run()
+            }
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle?) {
+        Log.d(TAG, "onSaveInstanceState")
+        super.onSaveInstanceState(outState)
     }
 
     override fun onPause() {
@@ -38,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onStop() {
+        isStopped = true
         Log.d(TAG, "onStop")
         super.onStop()
     }
@@ -56,7 +74,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showFragment() {
-        Log.d(TAG, "showFragment")
+        Log.d(TAG, "showFragment, isStopped: $isStopped, isDestroyed: $isDestroyed")
+
+        if (isDestroyed) {
+            Log.d(TAG, "showFragment, skipped")
+            return
+        }
+
+        if (isStopped) {
+            queue.add(Runnable {
+                showFragment()
+            })
+            Log.d(TAG, "showFragment, queued")
+            return
+        }
 
         supportFragmentManager.beginTransaction()
             .replace(R.id.container, TestFragment(), "TestFragment")
